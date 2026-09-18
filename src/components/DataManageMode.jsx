@@ -65,8 +65,35 @@ function SecondaryPrompt({ onSubmit, onCancel }) {
   )
 }
 
+function RenamePrompt({ currentName, onSubmit, onCancel }) {
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <p>이름 수정</p>
+        <input
+          autoFocus
+          type="text"
+          defaultValue={currentName}
+          onFocus={e => e.target.select()}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && e.target.value.trim()) onSubmit(e.target.value.trim())
+          }}
+          id="rename-input"
+        />
+        <div className="modal-actions">
+          <button onClick={() => {
+            const v = document.getElementById('rename-input').value.trim()
+            if (v) onSubmit(v)
+          }}>저장</button>
+          <button onClick={onCancel}>취소</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // 2차 카테고리 한 줄. 훅을 컴포넌트 최상위에서 호출해 Rules of Hooks를 지킵니다.
-function SecondaryRow({ primaryName, secName, secWeight, onWeightTap, onDelete }) {
+function SecondaryRow({ primaryName, secName, secWeight, onWeightTap, onDelete, onRename }) {
   const tapHandler = useTapHandlers(
     () => {},
     () => onWeightTap(primaryName, secName)
@@ -76,6 +103,10 @@ function SecondaryRow({ primaryName, secName, secWeight, onWeightTap, onDelete }
       <span>{secName}</span>
       <span className="weight-badge">{secWeight}</span>
       <button
+        className="edit-btn"
+        onClick={e => { e.stopPropagation(); onRename(primaryName, secName) }}
+      >수정</button>
+      <button
         className="delete-btn"
         onClick={e => { e.stopPropagation(); onDelete(primaryName, secName) }}
       >삭제</button>
@@ -84,7 +115,7 @@ function SecondaryRow({ primaryName, secName, secWeight, onWeightTap, onDelete }
 }
 
 // 1차 카테고리 한 줄. 마찬가지로 훅을 최상위에서 호출합니다.
-function PrimaryRow({ primaryName, p, onAddSecondary, onWeightTap, onDeletePrimary, onDeleteSecondary }) {
+function PrimaryRow({ primaryName, p, onAddSecondary, onWeightTap, onDeletePrimary, onDeleteSecondary, onRenamePrimary, onRenameSecondary }) {
   const hasSecondaries = Object.keys(p.secondaries).length > 0
   const tapHandler = useTapHandlers(
     () => onAddSecondary(primaryName),
@@ -95,6 +126,10 @@ function PrimaryRow({ primaryName, p, onAddSecondary, onWeightTap, onDeletePrima
       <div className={`primary-row ${hasSecondaries ? 'inactive-weight' : ''}`} onClick={tapHandler}>
         <span>{primaryName}</span>
         <span className="weight-badge">{hasSecondaries ? '—' : p.weight}</span>
+        <button
+          className="edit-btn"
+          onClick={e => { e.stopPropagation(); onRenamePrimary(primaryName) }}
+        >수정</button>
         <button
           className="delete-btn"
           onClick={e => { e.stopPropagation(); onDeletePrimary(primaryName) }}
@@ -110,6 +145,7 @@ function PrimaryRow({ primaryName, p, onAddSecondary, onWeightTap, onDeletePrima
               secWeight={secWeight}
               onWeightTap={onWeightTap}
               onDelete={onDeleteSecondary}
+              onRename={onRenameSecondary}
             />
           ))}
         </ul>
@@ -122,6 +158,7 @@ export default function DataManageMode({ data, refresh }) {
   const [newPrimaryName, setNewPrimaryName] = useState('')
   const [weightTarget, setWeightTarget] = useState(null) // { primary, secondary }
   const [secondaryTarget, setSecondaryTarget] = useState(null) // primaryName
+  const [renameTarget, setRenameTarget] = useState(null) // { primary, secondary|null, currentName }
 
   const handleAddPrimary = () => {
     const name = newPrimaryName.trim()
@@ -143,6 +180,14 @@ export default function DataManageMode({ data, refresh }) {
 
   const handleWeightTap = (primary, secondary) => {
     setWeightTarget({ primary, secondary })
+  }
+
+  const handleRenamePrimaryTap = (primaryName) => {
+    setRenameTarget({ primary: primaryName, secondary: null, currentName: primaryName })
+  }
+
+  const handleRenameSecondaryTap = (primaryName, secName) => {
+    setRenameTarget({ primary: primaryName, secondary: secName, currentName: secName })
   }
 
   return (
@@ -167,6 +212,8 @@ export default function DataManageMode({ data, refresh }) {
             onWeightTap={handleWeightTap}
             onDeletePrimary={handleDeletePrimary}
             onDeleteSecondary={handleDeleteSecondary}
+            onRenamePrimary={handleRenamePrimaryTap}
+            onRenameSecondary={handleRenameSecondaryTap}
           />
         ))}
       </ul>
@@ -195,6 +242,22 @@ export default function DataManageMode({ data, refresh }) {
             refresh()
           }}
           onCancel={() => setWeightTarget(null)}
+        />
+      )}
+
+      {renameTarget && (
+        <RenamePrompt
+          currentName={renameTarget.currentName}
+          onSubmit={(newName) => {
+            if (renameTarget.secondary) {
+              store.renameSecondary(renameTarget.primary, renameTarget.secondary, newName)
+            } else {
+              store.renamePrimary(renameTarget.primary, newName)
+            }
+            setRenameTarget(null)
+            refresh()
+          }}
+          onCancel={() => setRenameTarget(null)}
         />
       )}
     </div>
