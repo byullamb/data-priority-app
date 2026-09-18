@@ -74,6 +74,51 @@ export function setWeight(primaryName, secondaryName, weight) {
   saveRaw(data)
   return data
 }
+export function renamePrimary(oldName, newName) {
+  const data = loadRaw()
+  const trimmed = newName.trim()
+  if (!trimmed || trimmed === oldName) return data
+  if (!(oldName in data.primaries)) return data
+  if (trimmed in data.primaries) return data // 중복 이름 방지
+
+  const rebuilt = {}
+  for (const [key, value] of Object.entries(data.primaries)) {
+    rebuilt[key === oldName ? trimmed : key] = value
+  }
+  data.primaries = rebuilt
+
+  data.priorityOrder = data.priorityOrder.map(key => {
+    if (key === oldName) return trimmed
+    if (key.startsWith(`${oldName}>`)) return trimmed + key.slice(oldName.length)
+    return key
+  })
+
+  saveRaw(data)
+  return data
+}
+
+export function renameSecondary(primaryName, oldSecName, newSecName) {
+  const data = loadRaw()
+  const trimmed = newSecName.trim()
+  const p = data.primaries[primaryName]
+  if (!p) return data
+  if (!trimmed || trimmed === oldSecName) return data
+  if (!(oldSecName in p.secondaries)) return data
+  if (trimmed in p.secondaries) return data // 중복 이름 방지
+
+  const rebuilt = {}
+  for (const [key, value] of Object.entries(p.secondaries)) {
+    rebuilt[key === oldSecName ? trimmed : key] = value
+  }
+  p.secondaries = rebuilt
+
+  const oldKey = `${primaryName}>${oldSecName}`
+  const newKey = `${primaryName}>${trimmed}`
+  data.priorityOrder = data.priorityOrder.map(key => key === oldKey ? newKey : key)
+
+  saveRaw(data)
+  return data
+}
 
 // 리프 = 실제로 유효한 항목 목록
 // 2차가 있으면 (1차>2차)들이 리프, 없으면 1차 자체가 리프
