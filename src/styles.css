@@ -14,6 +14,7 @@ main { flex: 1; overflow-y: auto; padding: 12px; }
 .inactive-weight .weight-badge { color: #666; }
 .weight-badge { margin-left: auto; margin-right: 8px; font-weight: bold; }
 .delete-btn { background: #442222; color: #f88; border: none; padding: 4px 8px; border-radius: 4px; }
+.edit-btn { background: #223344; color: #8bf; border: none; padding: 4px 8px; border-radius: 4px; margin-right: 6px; }
 .priority-item { display: flex; align-items: center; padding: 12px; background: #1c1c1c; margin-bottom: 6px; border-radius: 6px; }
 .rank { width: 28px; font-weight: bold; color: #888; }
 .btn-fallback { margin-left: auto; display: flex; gap: 4px; }
