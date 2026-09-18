@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/data-priority-app/', // GitHub 저장소 이름과 반드시 일치해야 함
+  base: '/data-priority1/', // GitHub 저장소 이름과 반드시 일치해야 함
   plugins: [
     react(),
     VitePWA({

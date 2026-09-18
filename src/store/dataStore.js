@@ -62,18 +62,6 @@ export function deleteSecondary(primaryName, secondaryName) {
   return data
 }
 
-export function setWeight(primaryName, secondaryName, weight) {
-  const data = loadRaw()
-  const p = data.primaries[primaryName]
-  if (!p) return data
-  if (secondaryName) {
-    p.secondaries[secondaryName] = weight
-  } else {
-    p.weight = weight
-  }
-  saveRaw(data)
-  return data
-}
 export function renamePrimary(oldName, newName) {
   const data = loadRaw()
   const trimmed = newName.trim()
@@ -81,12 +69,14 @@ export function renamePrimary(oldName, newName) {
   if (!(oldName in data.primaries)) return data
   if (trimmed in data.primaries) return data // 중복 이름 방지
 
+  // 순서를 보존하며 키만 교체
   const rebuilt = {}
   for (const [key, value] of Object.entries(data.primaries)) {
     rebuilt[key === oldName ? trimmed : key] = value
   }
   data.primaries = rebuilt
 
+  // priorityOrder의 키("이름" 또는 "이름>2차이름")도 함께 갱신
   data.priorityOrder = data.priorityOrder.map(key => {
     if (key === oldName) return trimmed
     if (key.startsWith(`${oldName}>`)) return trimmed + key.slice(oldName.length)
@@ -116,6 +106,19 @@ export function renameSecondary(primaryName, oldSecName, newSecName) {
   const newKey = `${primaryName}>${trimmed}`
   data.priorityOrder = data.priorityOrder.map(key => key === oldKey ? newKey : key)
 
+  saveRaw(data)
+  return data
+}
+
+export function setWeight(primaryName, secondaryName, weight) {
+  const data = loadRaw()
+  const p = data.primaries[primaryName]
+  if (!p) return data
+  if (secondaryName) {
+    p.secondaries[secondaryName] = weight
+  } else {
+    p.weight = weight
+  }
   saveRaw(data)
   return data
 }
