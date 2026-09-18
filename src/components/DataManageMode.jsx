@@ -73,3 +73,130 @@ function SecondaryRow({ primaryName, secName, secWeight, onWeightTap, onDelete }
   )
   return (
     <li className="secondary-row" onClick={tapHandler}>
+      <span>{secName}</span>
+      <span className="weight-badge">{secWeight}</span>
+      <button
+        className="delete-btn"
+        onClick={e => { e.stopPropagation(); onDelete(primaryName, secName) }}
+      >삭제</button>
+    </li>
+  )
+}
+
+// 1차 카테고리 한 줄. 마찬가지로 훅을 최상위에서 호출합니다.
+function PrimaryRow({ primaryName, p, onAddSecondary, onWeightTap, onDeletePrimary, onDeleteSecondary }) {
+  const hasSecondaries = Object.keys(p.secondaries).length > 0
+  const tapHandler = useTapHandlers(
+    () => onAddSecondary(primaryName),
+    () => onWeightTap(primaryName, null)
+  )
+  return (
+    <li>
+      <div className={`primary-row ${hasSecondaries ? 'inactive-weight' : ''}`} onClick={tapHandler}>
+        <span>{primaryName}</span>
+        <span className="weight-badge">{hasSecondaries ? '—' : p.weight}</span>
+        <button
+          className="delete-btn"
+          onClick={e => { e.stopPropagation(); onDeletePrimary(primaryName) }}
+        >삭제</button>
+      </div>
+      {hasSecondaries && (
+        <ul className="secondary-list">
+          {Object.entries(p.secondaries).map(([secName, secWeight]) => (
+            <SecondaryRow
+              key={secName}
+              primaryName={primaryName}
+              secName={secName}
+              secWeight={secWeight}
+              onWeightTap={onWeightTap}
+              onDelete={onDeleteSecondary}
+            />
+          ))}
+        </ul>
+      )}
+    </li>
+  )
+}
+
+export default function DataManageMode({ data, refresh }) {
+  const [newPrimaryName, setNewPrimaryName] = useState('')
+  const [weightTarget, setWeightTarget] = useState(null) // { primary, secondary }
+  const [secondaryTarget, setSecondaryTarget] = useState(null) // primaryName
+
+  const handleAddPrimary = () => {
+    const name = newPrimaryName.trim()
+    if (!name) return
+    store.addPrimary(name)
+    setNewPrimaryName('')
+    refresh()
+  }
+
+  const handleDeletePrimary = (primaryName) => {
+    store.deletePrimary(primaryName)
+    refresh()
+  }
+
+  const handleDeleteSecondary = (primaryName, secName) => {
+    store.deleteSecondary(primaryName, secName)
+    refresh()
+  }
+
+  const handleWeightTap = (primary, secondary) => {
+    setWeightTarget({ primary, secondary })
+  }
+
+  return (
+    <div className="mode-panel">
+      <div className="add-row">
+        <input
+          placeholder="1차 카테고리 추가"
+          value={newPrimaryName}
+          onChange={e => setNewPrimaryName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAddPrimary()}
+        />
+        <button onClick={handleAddPrimary}>추가</button>
+      </div>
+
+      <ul className="primary-list">
+        {Object.entries(data.primaries).map(([primaryName, p]) => (
+          <PrimaryRow
+            key={primaryName}
+            primaryName={primaryName}
+            p={p}
+            onAddSecondary={setSecondaryTarget}
+            onWeightTap={handleWeightTap}
+            onDeletePrimary={handleDeletePrimary}
+            onDeleteSecondary={handleDeleteSecondary}
+          />
+        ))}
+      </ul>
+
+      {secondaryTarget && (
+        <SecondaryPrompt
+          onSubmit={(name) => {
+            store.addSecondary(secondaryTarget, name)
+            setSecondaryTarget(null)
+            refresh()
+          }}
+          onCancel={() => setSecondaryTarget(null)}
+        />
+      )}
+
+      {weightTarget && (
+        <WeightPrompt
+          current={
+            weightTarget.secondary
+              ? data.primaries[weightTarget.primary].secondaries[weightTarget.secondary]
+              : data.primaries[weightTarget.primary].weight
+          }
+          onSubmit={(val) => {
+            store.setWeight(weightTarget.primary, weightTarget.secondary, val)
+            setWeightTarget(null)
+            refresh()
+          }}
+          onCancel={() => setWeightTarget(null)}
+        />
+      )}
+    </div>
+  )
+}
